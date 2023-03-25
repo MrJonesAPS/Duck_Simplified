@@ -1,0 +1,59 @@
+{% extends "page.html" %}
+{% block title %}Hall Pass Admin{% endblock %}
+{% block content %}
+<main>
+    <h1>New Requests:</h1>
+    <p class="fs-5 col-md-8">
+        <ol>   
+            {% for pass in new_pass_requests %}
+            
+        
+           <li> 
+            {{ pass.name + " " + pass.destination }} 
+            <form class="form-inline" action="/approve_pass/{{pass.id}}">
+                <button class="btn btn-sm btn-outline-secondary">Approve</a> 
+            </form>
+
+            
+            </li>
+        
+            {% endfor %}
+        </ol>
+
+            
+
+    </p>
+
+    <h1>Approved Requests:</h1>
+    <p class="fs-5 col-md-8">
+        <ol>   
+            {% for pass in approved_passes %}
+            
+        
+           <li> 
+            {{ pass.name + " " + pass.destination }} 
+            
+            <form class="form-inline" action="/return_pass/{{pass.id}}">
+                <button class="btn btn-sm btn-outline-secondary">Back</a> 
+            </form>
+           
+            </li>
+        
+            {% endfor %}
+        </ol>
+
+            
+
+    </p>
+
+    <h1>
+        Print Daily Summary
+
+    </h1>
+    <form class="form-inline" action="/print_daily_summary">
+        <button class="btn btn-sm btn-outline-secondary">Print</a> 
+    </form>
+
+    
+</main>
+{% endblock %}
