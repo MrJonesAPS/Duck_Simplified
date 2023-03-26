@@ -38,19 +38,6 @@
                     <li class="nav-item">
                         <a class="nav-link" href="/request_pass">Hall Passes</a>
                     </li>
-                    {% if current_user.is_authenticated %}
-                    <li class="nav-item">
-                        <a class="nav-link" href="/pass_admin">Pass Admin</a>
-                    </li>
-                    <span class="navbar-text">
-                        Logged in as {{current_user.name}}
-                    </span>
-                    <form class="form-inline" action="/logout">
-                       <button class="btn btn-sm btn-outline-secondary">Logout</a> 
-                    </form>
-                    
-                    {% endif %}
-
                 </ul>
 
             </div>

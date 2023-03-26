@@ -21,10 +21,6 @@ from flask_login import (
 from oauthlib.oauth2 import WebApplicationClient
 import requests
 
-# Internal imports
-#from db import init_db_command
-#from user import User
-
 #configuration
 GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID", None)
 GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET", None)
@@ -144,8 +140,6 @@ def callback():
     # app, and now you've verified their email through Google!
     if userinfo_response.json().get("email_verified"):
         unique_id = userinfo_response.json()["sub"]
-        #users_email = userinfo_response.json()["email"]
-        #picture = userinfo_response.json()["picture"]
         users_name = userinfo_response.json()["given_name"]
     else:
         return "User email not available or not verified by Google.", 400
@@ -153,13 +147,6 @@ def callback():
     # Create a user in your db with the information provided
     # by Google
     user = get_user(unique_id)
-
-    # Doesn't exist? Add it to the database.
-    #if not User.get(unique_id):
-    #    User.create(unique_id, users_name, users_email, picture)
-    
-        
-    #exists = db.session.query(user.id).filter_by(id=user.id).first() is not None
 
     # Begin user session by logging the user in
     if user != None:
@@ -187,7 +174,6 @@ def logout():
 def helpQ():
     if request.method == "GET":
         waiter_list = Waiter.query.all()
-        #print(vars(waiter_list[0]))
         checkPaper()
         return render_template("helpQ.html", waiter_list = waiter_list, current_user=current_user)   
 
@@ -196,10 +182,8 @@ def helpQ():
 @login_required
 def pass_admin():
     if request.method == "GET":
-        #new_pass_requests = HallPass.query.filter_by(approved_datetime == None).all()
-        #approved_passes = HallPass.query.filter_by(approved_datetime != None).all()
         new_pass_requests = db.session.execute(db.select(HallPass).\
-                                               filter(HallPass.approved_datetime == None)).scalars()
+                                               filter(HallPass.approved_datetime == None,HallPass.rejected == False)).scalars()
         approved_passes = db.session.execute(db.select(HallPass).\
                                              filter(HallPass.approved_datetime != None,HallPass.back_datetime == None)).\
                                                 scalars()
@@ -216,6 +200,15 @@ def approve_pass(id):
     PrintHallPass(thisPass.name, thisPass.destination)
     return redirect(url_for("pass_admin"))  
 
+@app.route("/reject_pass/<id>", methods=["GET"])
+@login_required
+def reject_pass(id):
+    print("rejecting pass",id)
+    thisPass = HallPass.query.filter(id==id).first()
+    thisPass.rejected = True
+    db.session.commit()
+    return redirect(url_for("pass_admin"))  
+
 @app.route("/return_pass/<id>", methods=["GET"])
 @login_required
 def return_pass(id):
@@ -223,7 +216,6 @@ def return_pass(id):
     thisPass = HallPass.query.filter(id==id).first()
     thisPass.back_datetime = datetime.now()
     db.session.commit()
-    #PrintHallPass(thisPass.name, thisPass.destination)
     return redirect(url_for("pass_admin"))  
 
 @app.route("/resetdb")
@@ -235,16 +227,14 @@ def resetdb():
         adminUser = User(id='109593852925027537445',name="Admin")
         db.session.add(adminUser)
         db.session.commit()
+        flash("The DB was just reset","error")
+        return redirect(url_for("home"))
 
 ###
 #Initialize Printer
 ###
 printer = initializePrinter()
 
-# /// = relative path, //// = absolute path
-#app.config['SQLALCHEMY_DATABASE_URI'] =\
-#      'sqlite:////home/chris/Desktop/flask_app/http_student//instance/db.sqlite'
-#app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
 class Waiter(db.Model):
@@ -258,6 +248,7 @@ class HallPass(db.Model):
     request_datetime = db.Column(db.DateTime)
     approved_datetime = db.Column(db.DateTime)
     back_datetime = db.Column(db.DateTime)
+    rejected = db.Column(db.Boolean)
 
 def get_user(user_id):
     user = User.query.filter_by(id=user_id).first()
@@ -268,12 +259,4 @@ class User(db.Model, UserMixin):
     name = db.Column(db.String(100))
 
 if __name__ == "__main__":
-    #with app.app_context():
-    #    db.drop_all()
-    #    db.create_all()
-    #    adminUser = User(id='109593852925027537445',name="Admin")
-    #    db.session.add(adminUser)
-    #    db.session.commit()
     app.run(port=443, host='0.0.0.0', debug=True,ssl_context="adhoc")
-
-    #app.run(debug=True)

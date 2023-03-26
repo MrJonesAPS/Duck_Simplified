@@ -10,22 +10,8 @@ import busio
 import adafruit_thermal_printer
 import serial
 
-from flask_login import (
-    LoginManager,
-    current_user,
-    login_required,
-    login_user,
-    logout_user,
-    UserMixin
-)
-from oauthlib.oauth2 import WebApplicationClient
-import requests
-
 app = Flask(__name__)
 app.config.from_pyfile('instance/config.py')
-
-login_manager = LoginManager()
-login_manager.init_app(app)
 
 def initializePrinter():
     ThermalPrinter = adafruit_thermal_printer.get_printer_class(2.68)
@@ -46,9 +32,8 @@ def checkPaper():
 def helpQ():
     if request.method == "GET":
         waiter_list = Waiter.query.all()
-        #print(vars(waiter_list[0]))
         checkPaper()
-        return render_template("helpQ.html", waiter_list = waiter_list, current_user=current_user)
+        return render_template("helpQ.html", waiter_list = waiter_list)
 
 @app.route("/add", methods=["POST"])
 def add():
@@ -80,13 +65,11 @@ def request_pass():
         name = request.form.get("name")
         destination = request.form.get("destination")
         request_datetime = datetime.now()
-        new_pass_request = HallPass(name=name, destination=destination,request_datetime=request_datetime)
+        new_pass_request = HallPass(name=name, destination=destination,request_datetime=request_datetime,rejected=False)
         db.session.add(new_pass_request)
         db.session.commit()
-    #redirect
-
-    flash("Hi " + name + " your pass for " + destination + " has been created. You can now ask Mr Jones to approve it")
-    return redirect(url_for("helpQ"))    
+        flash("Hi " + name + " your pass for " + destination + " has been created. You can now ask Mr Jones to approve it")
+        return redirect(url_for("helpQ"))    
 
 ###
 #Initialize Printer
@@ -106,6 +89,7 @@ class HallPass(db.Model):
     request_datetime = db.Column(db.DateTime)
     approved_datetime = db.Column(db.DateTime)
     back_datetime = db.Column(db.DateTime)
+    rejected = db.Column(db.Boolean)
 
 if __name__ == "__main__":
     app.run(port=80, host='0.0.0.0', debug=True)
