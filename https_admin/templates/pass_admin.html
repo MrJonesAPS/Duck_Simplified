@@ -4,25 +4,68 @@
 <main>
     <h1>New Requests:</h1>
     <p class="fs-5 col-md-8">
-        <ol>   
+    <table class="table">
+        <tr>
+            <th>Name</th>
+            <th>Destination</th>
+            <th>Approve</th>
+            <th>Deny</th>
+        </tr>
+
+    
+           
             {% for pass in new_pass_requests %}
             
         
-           <li> 
-            {{ pass.name + " " + pass.destination }} 
-            <form class="form-inline" action="/approve_pass/{{pass.id}}">
-                <button class="btn btn-sm btn-outline-secondary">Approve</a> 
-            </form>
-            <form class="form-inline" action="/reject_pass/{{pass.id}}">
-                <button class="btn btn-sm btn-outline-secondary">Reject</a> 
-            </form>
-
-            
-            </li>
+           <tr> 
+            <td>{{ pass.name }}</td>
+            <td>{{ pass.destination }}</td>
+            <td>
+                <form class="form-inline" action="/approve_pass/{{pass.id}}">
+                    <button class="btn btn-sm btn-outline-secondary">Approve</a> 
+                </form>
+            </td>
+            <td>
+                <form class="form-inline" action="/reject_pass/{{pass.id}}">
+                    <button class="btn btn-sm btn-outline-secondary">Reject</a> 
+                </form>
+            </td>
+        </tr>
         
             {% endfor %}
-        </ol>
+        </table>
 
+    <h1>New WP Requests:</h1>
+    <p class="fs-5 col-md-8">
+        <table class="table">
+            <tr>
+                <th>Name</th>
+                <th>Date</th>
+                <th>Approve</th>
+                <th>Deny</th>
+            </tr>
+         
+            {% for pass in new_WP_requests %}
+            
+        
+           <tr> 
+            <td>{{ pass.name  }} </td>
+            <td>{{ pass.date }} </td>
+            <td>
+            <form class="form-inline" action="/approve_wp/{{pass.id}}">
+                <button class="btn btn-sm btn-outline-secondary">Approve</a> 
+            </form>
+        </td>
+        <td>
+            <form class="form-inline" action="/reject_wp/{{pass.id}}">
+                <button class="btn btn-sm btn-outline-secondary">Reject</a> 
+            </form>
+        </td>
+            
+        </tr>
+        
+            {% endfor %}
+        </table>
             
 
     </p>
@@ -48,7 +91,7 @@
             
 
     </p>
-
+    <!--
     <h1>
         Print Daily Summary
 
@@ -56,6 +99,7 @@
     <form class="form-inline" action="/print_daily_summary">
         <button class="btn btn-sm btn-outline-secondary">Print</a> 
     </form>
+    -->
 
     
 </main>

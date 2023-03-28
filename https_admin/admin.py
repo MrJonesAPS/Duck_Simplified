@@ -25,6 +25,7 @@ import requests
 GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID", None)
 GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET", None)
 SERVER_IP_ADDRESS = os.environ.get("IP", None).strip()
+ADMIN_USER_NUM = os.environ.get("ADMIN_USER_NUM", None).strip()
 GOOGLE_DISCOVERY_URL = (
     "https://accounts.google.com/.well-known/openid-configuration"
 )
@@ -67,6 +68,33 @@ def PrintHallPass(name, destination, date=date.today().strftime("%B %d, %Y"), ti
     printer.print("is going to " + destination)
     printer.print("at " + time)
     printer.print("on " + date)
+    printer.feed(2)
+    printer.print("Questions? See Mr. Jones")
+    printer.print("in room B130")
+    printer.feed(4)
+
+def PrintWPPass(name, date):
+    ###
+    #I got some of this code from stackoverflow
+    #https://stackoverflow.com/questions/5891555/display-the-date-like-may-5th-using-pythons-strftime
+    ###
+    def suffix(d):
+        return 'th' if 11<=d<=13 else {1:'st',2:'nd',3:'rd'}.get(d%10, 'th')
+
+    def custom_strftime(format, t):
+        return t.strftime(format).replace('{S}', str(t.day) + suffix(t.day))
+
+    printer.size = adafruit_thermal_printer.SIZE_MEDIUM
+    printer.feed(2)
+    printer.justify = adafruit_thermal_printer.JUSTIFY_CENTER
+    printer.print("__(.)<     THIS IS A    <(.)__")
+    printer.print("\___)   WARRIOR'S PASS   (___/")
+    printer.feed(2)
+    printer.print(name)
+    printer.print("is cordially invited")
+    printer.print("to room B130")
+    printer.print("during Warrior's Period on")
+    printer.print(custom_strftime('%a, %B the {S}, %Y', date))
     printer.feed(2)
     printer.print("Questions? See Mr. Jones")
     printer.print("in room B130")
@@ -183,18 +211,27 @@ def helpQ():
 def pass_admin():
     if request.method == "GET":
         new_pass_requests = db.session.execute(db.select(HallPass).\
-                                               filter(HallPass.approved_datetime == None,HallPass.rejected == False)).scalars()
+                                               filter(HallPass.approved_datetime == None,
+                                                      HallPass.rejected.is_(False))).scalars()
         approved_passes = db.session.execute(db.select(HallPass).\
-                                             filter(HallPass.approved_datetime != None,HallPass.back_datetime == None)).\
-                                                scalars()
+                                             filter(HallPass.approved_datetime != None,
+                                                    HallPass.back_datetime == None)).scalars()
+        
+        new_WP_requests = db.session.execute(db.select(WPPass).\
+                                               filter(WPPass.approved_datetime == None,
+                                                      WPPass.rejected.is_(False))).scalars()
         checkPaper()
-        return render_template("pass_admin.html", new_pass_requests = new_pass_requests, approved_passes = approved_passes, current_user=current_user)
+        return render_template("pass_admin.html",
+                               new_pass_requests = new_pass_requests,
+                               approved_passes = approved_passes,
+                               new_WP_requests = new_WP_requests,
+                               current_user=current_user)
 
 @app.route("/approve_pass/<id>", methods=["GET"])
 @login_required
 def approve_pass(id):
     print("approving pass",id)
-    thisPass = HallPass.query.filter(id==id).first()
+    thisPass = db.session.execute(db.select(HallPass).filter_by(id=id)).scalar_one()
     thisPass.approved_datetime = datetime.now()
     db.session.commit()
     PrintHallPass(thisPass.name, thisPass.destination)
@@ -204,8 +241,29 @@ def approve_pass(id):
 @login_required
 def reject_pass(id):
     print("rejecting pass",id)
-    thisPass = HallPass.query.filter(id==id).first()
-    thisPass.rejected = True
+    thisPass = db.session.execute(db.select(HallPass).filter_by(id=id)).scalar_one()
+    thisPass.rejected = True #Why doesn't this work???
+    db.session.commit()
+    return redirect(url_for("pass_admin"))  
+
+@app.route("/approve_wp/<id>", methods=["GET"])
+@login_required
+def approve_wp(id):
+    print("approving WP",id)
+    thisPass = db.session.execute(db.select(WPPass).filter_by(id=id)).scalar_one()
+    print(thisPass)
+    thisPass.approved_datetime = datetime.now()
+    db.session.commit()
+    PrintWPPass(thisPass.name, thisPass.date)
+    return redirect(url_for("pass_admin"))  
+
+@app.route("/reject_wp/<id>", methods=["GET"])
+@login_required
+def reject_wp(id):
+    print("rejecting WP",id)
+    thisPass = db.session.execute(db.select(WPPass).filter_by(id=id)).scalar_one()
+    print(thisPass)
+    thisPass.rejected = True #Why doesn't this work???
     db.session.commit()
     return redirect(url_for("pass_admin"))  
 
@@ -213,7 +271,7 @@ def reject_pass(id):
 @login_required
 def return_pass(id):
     print("returning pass",id)
-    thisPass = HallPass.query.filter(id==id).first()
+    thisPass = db.session.execute(db.select(HallPass).filter_by(id=id)).scalar_one()
     thisPass.back_datetime = datetime.now()
     db.session.commit()
     return redirect(url_for("pass_admin"))  
@@ -224,7 +282,7 @@ def resetdb():
     with app.app_context():
         db.drop_all()
         db.create_all()
-        adminUser = User(id='109593852925027537445',name="Admin")
+        adminUser = User(id=ADMIN_USER_NUM,name="Admin")
         db.session.add(adminUser)
         db.session.commit()
         flash("The DB was just reset","error")
@@ -240,6 +298,7 @@ db = SQLAlchemy(app)
 class Waiter(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100))
+    completed_datetime = db.Column(db.DateTime)
 
 class HallPass(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -248,6 +307,14 @@ class HallPass(db.Model):
     request_datetime = db.Column(db.DateTime)
     approved_datetime = db.Column(db.DateTime)
     back_datetime = db.Column(db.DateTime)
+    rejected = db.Column(db.Boolean)
+
+class WPPass(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100))
+    date = db.Column(db.Date)
+    request_datetime = db.Column(db.DateTime)
+    approved_datetime = db.Column(db.DateTime)
     rejected = db.Column(db.Boolean)
 
 def get_user(user_id):

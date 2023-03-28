@@ -2,7 +2,7 @@ import json
 import os
 import sqlite3
 
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from flask import Flask, redirect, url_for, render_template, request, flash
 from flask_sqlalchemy import SQLAlchemy
 import board
@@ -28,6 +28,9 @@ def checkPaper():
         flash("The printer is out of paper. Tell Mr. Jones to fix it!","error")
 
 @app.route("/", methods=["GET"])
+def home():
+    return render_template("home.html")
+
 @app.route("/helpQ", methods=["GET"])
 def helpQ():
     if request.method == "GET":
@@ -43,13 +46,10 @@ def add():
     db.session.add(new_waiter)
     db.session.commit()
 
-    #print a message saying that the user was added
-    message = "Added "+ name + " to queue"
-    printer.print(message)
-    printer.feed(2)
-
     #redirect
-    return redirect(url_for("helpQ"))
+    flash("Hi " + name + " you have been added to the help queue")
+        
+    return redirect(url_for("home"))
 
 @app.route("/joinQ", methods=["GET"])
 def joinQ():
@@ -69,7 +69,32 @@ def request_pass():
         db.session.add(new_pass_request)
         db.session.commit()
         flash("Hi " + name + " your pass for " + destination + " has been created. You can now ask Mr Jones to approve it")
-        return redirect(url_for("helpQ"))    
+        return redirect(url_for("home"))    
+
+@app.route("/request_wp", methods=["GET","POST"])
+def request_wp():
+    if request.method == "GET":
+        checkPaper()
+        return render_template("request_wp.html")
+    elif request.method == "POST":
+        name = request.form.get("name")
+        date = datetime.strptime(request.form.get("date"), '%Y-%m-%d').date()
+        request_datetime = datetime.now()
+        new_wp_pass_request = WPPass(name=name, date=date,request_datetime=request_datetime,rejected=False)
+        db.session.add(new_wp_pass_request)
+        db.session.commit()
+        flashMessage = "Hi " + name + " your Warriors Period pass for "
+        tomorrow = datetime.today() + timedelta(days=1)
+
+        if date == datetime.today().date():
+            flashMessage += "today"
+        elif date == tomorrow.date():
+            flashMessage += "tomorrow"
+        else:
+            flashMessage += str(date)
+        flashMessage += " has been created. You can now ask Mr Jones to approve it"
+        flash(flashMessage)
+        return redirect(url_for("home")) 
 
 ###
 #Initialize Printer
@@ -81,6 +106,7 @@ db = SQLAlchemy(app)
 class Waiter(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100))
+    completed_datetime = db.Column(db.DateTime)
 
 class HallPass(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -89,6 +115,14 @@ class HallPass(db.Model):
     request_datetime = db.Column(db.DateTime)
     approved_datetime = db.Column(db.DateTime)
     back_datetime = db.Column(db.DateTime)
+    rejected = db.Column(db.Boolean)
+
+class WPPass(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100))
+    date = db.Column(db.Date)
+    request_datetime = db.Column(db.DateTime)
+    approved_datetime = db.Column(db.DateTime)
     rejected = db.Column(db.Boolean)
 
 if __name__ == "__main__":
