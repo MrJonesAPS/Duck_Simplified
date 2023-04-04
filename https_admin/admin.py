@@ -2,7 +2,7 @@ import json
 import os
 import sqlite3
 
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from flask import Flask, redirect, url_for, render_template, request, flash
 from flask_sqlalchemy import SQLAlchemy
 import board
@@ -35,6 +35,10 @@ app.config.from_pyfile('instance/config.py')
 
 login_manager = LoginManager()
 login_manager.init_app(app)
+login_manager.login_view = "login"
+#I don't need to flash a message if logged out because I always just redirect to login
+login_manager.login_message = None
+
 
 # OAuth 2 client setup
 client = WebApplicationClient(GOOGLE_CLIENT_ID)
@@ -57,7 +61,7 @@ def checkPaper():
     else:
         flash("The printer is out of paper. Tell Mr. Jones to fix it!","error")
 
-def PrintHallPass(name, destination, date=date.today().strftime("%B %d, %Y"), time=datetime.now().strftime("%H:%M:%S")):
+def PrintHallPass(name, destination, date=date.today().strftime("%B %d, %Y"), time=datetime.now().strftime("%I:%M %p")):
     printer.size = adafruit_thermal_printer.SIZE_MEDIUM
     printer.feed(2)
     printer.justify = adafruit_thermal_printer.JUSTIFY_CENTER
@@ -276,6 +280,38 @@ def return_pass(id):
     db.session.commit()
     return redirect(url_for("pass_admin"))  
 
+@app.route("/request_pass", methods=["GET","POST"])
+def request_pass():
+    #this page for the admin both creates and approves the request
+    if request.method == "GET":
+        checkPaper()
+        return render_template("request_pass.html")
+    elif request.method == "POST":
+        name = request.form.get("name")
+        destination = request.form.get("destination")
+        request_datetime = datetime.now()
+        new_pass_request = HallPass(name=name, destination=destination,request_datetime=request_datetime,rejected=False)
+        db.session.add(new_pass_request)
+        db.session.commit()
+        #after you commit, the id is set. I'll use my existing approval code from here
+        return approve_pass(new_pass_request.id)  
+
+@app.route("/request_wp", methods=["GET","POST"])
+def request_wp():
+    #this page for the admin both creates and approves the request
+    if request.method == "GET":
+        checkPaper()
+        return render_template("request_wp.html")
+    elif request.method == "POST":
+        name = request.form.get("name")
+        date = datetime.strptime(request.form.get("date"), '%Y-%m-%d').date()
+        request_datetime = datetime.now()
+        new_wp_pass_request = WPPass(name=name, date=date,request_datetime=request_datetime,rejected=False)
+        db.session.add(new_wp_pass_request)
+        db.session.commit()
+        return approve_wp(new_wp_pass_request.id)
+        
+
 @app.route("/resetdb")
 @login_required
 def resetdb():
@@ -287,6 +323,54 @@ def resetdb():
         db.session.commit()
         flash("The DB was just reset","error")
         return redirect(url_for("home"))
+
+@app.route("/summary")
+@login_required
+def summary():
+    approved_passes = db.session.execute(db.select(HallPass).\
+                                            filter(HallPass.approved_datetime != None)).scalars()
+        
+    approved_WP = db.session.execute(db.select(WPPass).\
+                                            filter(WPPass.approved_datetime != None)).scalars()
+    
+    printer.size = adafruit_thermal_printer.SIZE_LARGE
+    printer.feed(2)
+    printer.justify = adafruit_thermal_printer.JUSTIFY_CENTER
+    printer.print("SUMMARY FOR")
+    printer.print(date.today().strftime("%B %d, %Y"))
+    printer.justify = adafruit_thermal_printer.JUSTIFY_LEFT
+    printer.feed(2)
+    printer.size = adafruit_thermal_printer.SIZE_MEDIUM
+    printer.print("Hall Passes:")
+    printer.size = adafruit_thermal_printer.SIZE_SMALL
+    printer.feed(1)
+    for p in approved_passes:
+        printer.print(p.name)
+        printer.print(p.destination)
+        printer.print(p.approved_datetime.strftime("%B %d, %Y"))
+        printer.print(p.approved_datetime.strftime("%I:%M %p"))
+        goneTime = p.back_datetime - p.approved_datetime
+        printer.print("Gone " + str(int(goneTime.total_seconds() // 60)) + " minutes")
+        printer.print("-----------")
+
+
+    printer.feed(2)
+    printer.size = adafruit_thermal_printer.SIZE_MEDIUM
+    printer.print("Warrior's passes:")
+    printer.size = adafruit_thermal_printer.SIZE_SMALL
+    printer.feed(1)
+    for p in approved_WP:
+        printer.print(p.name)
+        printer.print(p.date.strftime("%B %d, %Y"))
+        printer.print("-----------")
+
+    printer.size = adafruit_thermal_printer.SIZE_LARGE
+    printer.feed(2)
+    printer.justify = adafruit_thermal_printer.JUSTIFY_CENTER
+    printer.print("END SUMMARY")
+    printer.feed(2)
+    flash("Summary print successful")
+    return redirect(url_for("home"))
 
 ###
 #Initialize Printer
@@ -326,4 +410,5 @@ class User(db.Model, UserMixin):
     name = db.Column(db.String(100))
 
 if __name__ == "__main__":
-    app.run(port=443, host='0.0.0.0', debug=True,ssl_context="adhoc")
+    #app.run(port=443, host='0.0.0.0', debug=True,ssl_context="adhoc")
+    app.run(port=443, host='0.0.0.0', debug=False,ssl_context="adhoc")
