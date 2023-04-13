@@ -106,4 +106,8 @@
 
     
 </main>
+{% if should_we_quack  %}
+<!--Sound Effect by <a href="https://pixabay.com/users/iedurodrigues-27915902/?utm_source=link-attribution&amp;utm_medium=referral&amp;utm_campaign=music&amp;utm_content=112941">iedurodrigues</a> from <a href="https://pixabay.com/sound-effects//?utm_source=link-attribution&amp;utm_medium=referral&amp;utm_campaign=music&amp;utm_content=112941">Pixabay</a>-->
+<embed src="/static/brand/duck-quack-112941.mp3" controller="true" autoplay="true" autostart="True" type="audio/mp3"/>
+{% endif %}
 {% endblock %}

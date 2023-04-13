@@ -53,6 +53,9 @@ def initializePrinter():
     uart = serial.Serial("/dev/serial0", baudrate=19200, timeout=3000)
     printer = ThermalPrinter(uart, auto_warm_up=False)
     printer.warm_up()
+    printer.print("DUCK is online. Here is the IP address:")
+    printer.print(SERVER_IP_ADDRESS)
+    printer.feed(2)
     return printer
 
 def checkPaper():
@@ -225,11 +228,23 @@ def pass_admin():
                                                filter(WPPass.approved_datetime == None,
                                                       WPPass.rejected.is_(False))).scalars()
         checkPaper()
+        
+        #####
+        #When a student has an unapproved request, quack
+        #####
+        firstRecord_PassRequests = db.session.execute(db.select(HallPass).\
+                                               filter(HallPass.approved_datetime == None,
+                                                    HallPass.rejected.is_(False))).first()
+        
+        should_we_quack = (firstRecord_PassRequests != None)
+
         return render_template("pass_admin.html",
                                new_pass_requests = new_pass_requests,
                                approved_passes = approved_passes,
                                new_WP_requests = new_WP_requests,
-                               current_user=current_user)
+                               current_user=current_user,
+                               should_we_quack=should_we_quack
+                               )
 
 @app.route("/approve_pass/<id>", methods=["GET"])
 @login_required
