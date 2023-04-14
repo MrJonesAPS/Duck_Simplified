@@ -64,7 +64,7 @@ def checkPaper():
     else:
         flash("The printer is out of paper. Tell Mr. Jones to fix it!","error")
 
-def PrintHallPass(name, destination, date=date.today().strftime("%B %d, %Y"), time=datetime.now().strftime("%I:%M %p")):
+def PrintHallPass(name, destination, date, time):
     printer.size = adafruit_thermal_printer.SIZE_MEDIUM
     printer.feed(2)
     printer.justify = adafruit_thermal_printer.JUSTIFY_CENTER
@@ -253,7 +253,9 @@ def approve_pass(id):
     thisPass = db.session.execute(db.select(HallPass).filter_by(id=id)).scalar_one()
     thisPass.approved_datetime = datetime.now()
     db.session.commit()
-    PrintHallPass(thisPass.name, thisPass.destination)
+    nowTime = datetime.now().strftime("%I:%M %p")
+    nowDate = date.today().strftime("%B %d, %Y")
+    PrintHallPass(thisPass.name, thisPass.destination, nowDate, nowTime)
     return redirect(url_for("pass_admin"))  
 
 @app.route("/reject_pass/<id>", methods=["GET"])
