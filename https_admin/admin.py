@@ -66,19 +66,18 @@ def checkPaper():
 
 def PrintHallPass(name, destination, date, time):
     printer.size = adafruit_thermal_printer.SIZE_MEDIUM
-    printer.feed(2)
     printer.justify = adafruit_thermal_printer.JUSTIFY_CENTER
     printer.print("__(.)<   THIS IS A   <(.)__")
     printer.print("\___)    HALL PASS    (___/")
-    printer.feed(2)
+    printer.feed(1)
     printer.print(name)
     printer.print("is going to " + destination)
     printer.print("at " + time)
     printer.print("on " + date)
-    printer.feed(2)
+    printer.feed(1)
     printer.print("Questions? See Mr. Jones")
     printer.print("in room B130")
-    printer.feed(4)
+    printer.feed(2)
 
 def PrintWPPass(name, date):
     ###
@@ -92,20 +91,19 @@ def PrintWPPass(name, date):
         return t.strftime(format).replace('{S}', str(t.day) + suffix(t.day))
 
     printer.size = adafruit_thermal_printer.SIZE_MEDIUM
-    printer.feed(2)
     printer.justify = adafruit_thermal_printer.JUSTIFY_CENTER
     printer.print("__(.)<     THIS IS A    <(.)__")
     printer.print("\___)   WARRIOR'S PASS   (___/")
-    printer.feed(2)
+    printer.feed(1)
     printer.print(name)
     printer.print("is cordially invited")
     printer.print("to room B130")
     printer.print("during Warrior's Period on")
     printer.print(custom_strftime('%a, %B the {S}, %Y', date))
-    printer.feed(2)
+    printer.feed(1)
     printer.print("Questions? See Mr. Jones")
     printer.print("in room B130")
-    printer.feed(4)
+    printer.feed(2)
 
 @app.context_processor
 def inject_dict_for_all_templates():
@@ -351,38 +349,30 @@ def summary():
                                             filter(WPPass.approved_datetime != None)).scalars()
     
     printer.size = adafruit_thermal_printer.SIZE_LARGE
-    printer.feed(2)
     printer.justify = adafruit_thermal_printer.JUSTIFY_CENTER
     printer.print("SUMMARY FOR")
     printer.print(date.today().strftime("%B %d, %Y"))
     printer.justify = adafruit_thermal_printer.JUSTIFY_LEFT
-    printer.feed(2)
     printer.size = adafruit_thermal_printer.SIZE_MEDIUM
     printer.print("Hall Passes:")
     printer.size = adafruit_thermal_printer.SIZE_SMALL
-    printer.feed(1)
     for p in approved_passes:
-        printer.print(p.name)
-        printer.print(p.destination)
-        printer.print(p.approved_datetime.strftime("%B %d, %Y"))
-        printer.print(p.approved_datetime.strftime("%I:%M %p"))
+        printer.print(p.name + " | " + p.destination)
         goneTime = p.back_datetime - p.approved_datetime
-        printer.print("Gone " + str(int(goneTime.total_seconds() // 60)) + " minutes")
-        printer.print("-----------")
+        printer.underline = adafruit_thermal_printer.UNDERLINE_THICK
+        printer.print(p.approved_datetime.strftime("%B %d, %y %I:%M %p") + "(" + str(int(goneTime.total_seconds() // 60)) + " mins)")
+        printer.underline = None
 
-
-    printer.feed(2)
+    printer.feed(1)
     printer.size = adafruit_thermal_printer.SIZE_MEDIUM
     printer.print("Warrior's passes:")
     printer.size = adafruit_thermal_printer.SIZE_SMALL
     printer.feed(1)
     for p in approved_WP:
-        printer.print(p.name)
-        printer.print(p.date.strftime("%B %d, %Y"))
-        printer.print("-----------")
+        printer.print(">" + p.name + "|" + p.date.strftime("%B %d, %Y"))
 
     printer.size = adafruit_thermal_printer.SIZE_LARGE
-    printer.feed(2)
+    printer.feed(1)
     printer.justify = adafruit_thermal_printer.JUSTIFY_CENTER
     printer.print("END SUMMARY")
     printer.feed(2)
