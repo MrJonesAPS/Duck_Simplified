@@ -50,8 +50,8 @@ def load_user(user_id):
 
 def initializePrinter():
     ThermalPrinter = adafruit_thermal_printer.get_printer_class(2.68)
-    uart = serial.Serial("/dev/serial0", baudrate=19200, timeout=3000)
-    printer = ThermalPrinter(uart, auto_warm_up=False)
+    uart = serial.Serial("/dev/serial0", baudrate=19200, timeout=0)
+    printer = ThermalPrinter(uart, auto_warm_up=False, dot_print_s = 0, byte_delay_s = 0)
     printer.warm_up()
     printer.print("DUCK is online. Here is the IP address:")
     printer.print(SERVER_IP_ADDRESS)
