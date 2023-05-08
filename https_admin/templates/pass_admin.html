@@ -80,7 +80,7 @@
             
         
            <li> 
-            {{ pass.name + " " + pass.destination }} 
+            {{ pass.name + " " + pass.destination + " (" + str(int(((now() - pass.approved_datetime).total_seconds())//60)) + " mins)" }} 
             
             <form class="form-inline" action="/return_pass/{{pass.id}}">
                 <button class="btn btn-sm btn-outline-secondary">Back</a> 
@@ -94,19 +94,32 @@
         
             {% endfor %}
         </ol>
+    
+    </p>
 
+    <h1>Approved WP Passes:</h1>
+    <p class="fs-5 col-md-8">
+        <ol>   
+            {% for pass in approved_WP %}
+            
+        
+           <li> 
+            {{ pass.name }} | {{pass.date }} 
             
 
-    </p>
-    <!--
-    <h1>
-        Print Daily Summary
 
-    </h1>
-    <form class="form-inline" action="/print_daily_summary">
-        <button class="btn btn-sm btn-outline-secondary">Print</a> 
-    </form>
-    -->
+            <form class="form-inline" action="/approve_wp/{{pass.id}}">
+                <button class="btn btn-sm btn-outline-secondary">Reprint</a> 
+            </form>
+           
+            </li>
+        
+            {% endfor %}
+        </ol>
+    
+    </p>
+
+
 
     
 </main>

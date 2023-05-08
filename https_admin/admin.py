@@ -51,7 +51,7 @@ def load_user(user_id):
 def initializePrinter():
     ThermalPrinter = adafruit_thermal_printer.get_printer_class(2.68)
     uart = serial.Serial("/dev/serial0", baudrate=19200, timeout=0)
-    printer = ThermalPrinter(uart, auto_warm_up=False, dot_print_s = 0, byte_delay_s = 0)
+    printer = ThermalPrinter(uart, auto_warm_up=False, dot_print_s = 0.01, byte_delay_s = 0)
     printer.warm_up()
     printer.print("DUCK is online. Here is the IP address:")
     printer.print(SERVER_IP_ADDRESS)
@@ -90,18 +90,20 @@ def PrintWPPass(name, date):
     def custom_strftime(format, t):
         return t.strftime(format).replace('{S}', str(t.day) + suffix(t.day))
 
-    printer.size = adafruit_thermal_printer.SIZE_MEDIUM
+    printer.size = adafruit_thermal_printer.SIZE_LARGE
+    printer.justify = adafruit_thermal_printer.JUSTIFY_LEFT
+    printer.print("__(.)<   WARRIOR")
+    printer.print("\___)    PASS")
     printer.justify = adafruit_thermal_printer.JUSTIFY_CENTER
-    printer.print("__(.)<     THIS IS A    <(.)__")
-    printer.print("\___)   WARRIOR'S PASS   (___/")
-    printer.feed(1)
+    printer.feed(3)
     printer.print(name)
-    printer.print("is cordially invited")
+    printer.print("is invited")
     printer.print("to room B130")
-    printer.print("during Warrior's Period on")
-    printer.print(custom_strftime('%a, %B the {S}, %Y', date))
-    printer.feed(1)
-    printer.print("Questions? See Mr. Jones")
+    printer.print("on")
+    printer.print(custom_strftime('%a, %B {S}', date))
+    printer.feed(3)
+    printer.print("Questions?") 
+    printer.print("See Mr. Jones")
     printer.print("in room B130")
     printer.feed(2)
 
@@ -225,6 +227,12 @@ def pass_admin():
         new_WP_requests = db.session.execute(db.select(WPPass).\
                                                filter(WPPass.approved_datetime == None,
                                                       WPPass.rejected.is_(False))).scalars()
+
+        approved_WP = db.session.execute(db.select(WPPass).\
+                                               filter(WPPass.approved_datetime != None,
+                                                      WPPass.rejected.is_(False))).scalars()
+
+
         checkPaper()
         
         #####
@@ -240,8 +248,12 @@ def pass_admin():
                                new_pass_requests = new_pass_requests,
                                approved_passes = approved_passes,
                                new_WP_requests = new_WP_requests,
+                               approved_WP = approved_WP,
                                current_user=current_user,
-                               should_we_quack=should_we_quack
+                               should_we_quack=should_we_quack,
+                               now = datetime.now,
+                               int = int,
+                               str = str
                                )
 
 @app.route("/approve_pass/<id>", methods=["GET"])
@@ -261,7 +273,7 @@ def approve_pass(id):
 def reject_pass(id):
     print("rejecting pass",id)
     thisPass = db.session.execute(db.select(HallPass).filter_by(id=id)).scalar_one()
-    thisPass.rejected = True #Why doesn't this work???
+    thisPass.rejected = True
     db.session.commit()
     return redirect(url_for("pass_admin"))  
 
