@@ -1,3 +1,7 @@
-D.U.C.K is the Digital Unified Classroom Keeper - a tool for classroom management in my high school Computer Science Classroom.
+A simplified version of DUCK that students can use for development.
 
-DUCK is a simple Flask web app that runs on a Raspberry Pi and can print hall passes on a thermal receipt printer.
+Forked from https://github.com/MrJonesAPS/Duck
+
+For this version:
+* The student and admin apps both run with debug = True, and on HTTP
+* The admin app does not require login

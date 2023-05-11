@@ -1,7 +1,5 @@
 venv/
-http_student/instance/db.sqlite
-http_student/instance/
-https_admin/instance/
-http_student/__pycache__/
-nohup.out
-startBoth.sh
+student/instance/db.sqlite
+student/instance/
+admin/instance/
+student/__pycache__/
